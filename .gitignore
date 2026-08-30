@@ -1,0 +1,39 @@
+# Build output
+dist*/
+artifacts/
+bin/
+obj/
+[Bb]in/
+[Oo]bj/
+
+# A damaged .git kept aside while the repository was rebuilt
+.git_broken*/
+
+# Rider / Visual Studio / VS Code
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userprefs
+
+# NuGet
+packages/
+*.nupkg
+*.snupkg
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Python
+__pycache__/
+*.pyc
+
+# Local scratch: keep example outputs out of git
+examples/*.dwxmz
+examples/*.dwxml
+
+# DWSIM writes these next to the executable when it runs
+*.log

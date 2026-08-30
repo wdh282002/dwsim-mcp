@@ -1,0 +1,189 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The Model Context Protocol server: it exposes the flowsheet, the streams, the unit operations,
+    the thermodynamics and the solver as MCP tools over stdio or HTTP with server-sent events, so
+    an assistant can build and solve a simulation.
+
+    It sits on the automation and fluent APIs and on nothing else: no WinForms, no licensing,
+    and none of the Patreon-only builders.
+
+    Two ways to build:
+
+      1. Inside a DWSIM source tree (this is how upstream builds it) - the engine projects are
+         referenced directly:
+
+             dotnet build -c Release
+
+      2. Standalone, against an already-built DWSIM binary directory (an extracted DWSIM install
+         or a `dwsim-mcp` runtime folder). Point DWSIM_BIN_DIR at it:
+
+             dotnet build -c Release -p:DWSIM_BIN_DIR=/path/to/dwsim/bin
+
+    The Newtonsoft.Json version is normally supplied by the DWSIM Directory.Packages.props; when
+    building standalone there is none, so the version is pinned here.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>DWSIM.MCPServer</RootNamespace>
+    <AssemblyName>dwsim-mcp</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <!--
+      DWSIM needs real cultures (its UNIFAC tables are built under en-US), so
+      InvariantGlobalization must stay off even though it is tempting for a
+      headless server.
+    -->
+    <InvariantGlobalization>false</InvariantGlobalization>
+  </PropertyGroup>
+
+  <!--
+    A property passed on the command line is global, so the project cannot normalise
+    DWSIM_BIN_DIR itself - assigning to it here would be silently ignored. Derive a
+    separate property that is guaranteed to end in a directory separator instead, so the
+    caller may pass the directory with or without a trailing slash.
+  -->
+  <PropertyGroup>
+    <DWSIM_BIN_PATH Condition="'$(DWSIM_BIN_DIR)' != '' AND HasTrailingSlash('$(DWSIM_BIN_DIR)')">$(DWSIM_BIN_DIR)</DWSIM_BIN_PATH>
+    <DWSIM_BIN_PATH Condition="'$(DWSIM_BIN_DIR)' != '' AND !HasTrailingSlash('$(DWSIM_BIN_DIR)')">$(DWSIM_BIN_DIR)\</DWSIM_BIN_PATH>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+  <!-- Mode 1: build inside the DWSIM source tree (upstream default) -->
+  <ItemGroup Condition="'$(DWSIM_BIN_DIR)' == ''">
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\..\engine\DWSIM.Automation\DWSIM.Automation.csproj" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\..\engine\DWSIM.Automation.DynamicRunner\DWSIM.Automation.DynamicRunner.csproj" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\..\engine\DWSIM.FluentAPI\DWSIM.FluentAPI.csproj" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\..\engine\DWSIM.FlowsheetBase\DWSIM.FlowsheetBase.vbproj" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\..\engine\DWSIM.Interfaces\DWSIM.Interfaces.vbproj" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\..\engine\DWSIM.Thermodynamics\DWSIM.Thermodynamics.vbproj" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\..\engine\DWSIM.UnitOperations\DWSIM.UnitOperations.vbproj" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\..\engine\DWSIM.GlobalSettings\DWSIM.GlobalSettings.vbproj" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\..\engine\DWSIM.SharedClasses\DWSIM.SharedClasses.vbproj" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\..\engine\DWSIM.FlowsheetSolver\DWSIM.FlowsheetSolver.vbproj" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\..\engine\DWSIM.Drawing.SkiaSharp\DWSIM.Drawing.SkiaSharp.vbproj" />
+  </ItemGroup>
+
+  <!-- Mode 2: build against a prebuilt DWSIM binary directory -->
+  <ItemGroup Condition="'$(DWSIM_BIN_DIR)' != ''">
+    <Reference Include="ICSharpCode.SharpZipLib">
+      <HintPath>$(DWSIM_BIN_PATH)ICSharpCode.SharpZipLib.dll</HintPath>
+    </Reference>
+    <Reference Include="DWSIM.Automation">
+      <HintPath>$(DWSIM_BIN_PATH)DWSIM.Automation.dll</HintPath>
+    </Reference>
+    <Reference Include="DWSIM.Automation.DynamicRunner">
+      <HintPath>$(DWSIM_BIN_PATH)DWSIM.Automation.DynamicRunner.dll</HintPath>
+    </Reference>
+    <Reference Include="DWSIM.Automation.FluentAPI">
+      <HintPath>$(DWSIM_BIN_PATH)DWSIM.Automation.FluentAPI.dll</HintPath>
+    </Reference>
+    <Reference Include="DWSIM.FlowsheetBase">
+      <HintPath>$(DWSIM_BIN_PATH)DWSIM.FlowsheetBase.dll</HintPath>
+    </Reference>
+    <Reference Include="DWSIM.Interfaces">
+      <HintPath>$(DWSIM_BIN_PATH)DWSIM.Interfaces.dll</HintPath>
+    </Reference>
+    <Reference Include="DWSIM.Thermodynamics">
+      <HintPath>$(DWSIM_BIN_PATH)DWSIM.Thermodynamics.dll</HintPath>
+    </Reference>
+    <Reference Include="DWSIM.UnitOperations">
+      <HintPath>$(DWSIM_BIN_PATH)DWSIM.UnitOperations.dll</HintPath>
+    </Reference>
+    <Reference Include="DWSIM.GlobalSettings">
+      <HintPath>$(DWSIM_BIN_PATH)DWSIM.GlobalSettings.dll</HintPath>
+    </Reference>
+    <Reference Include="DWSIM.SharedClasses">
+      <HintPath>$(DWSIM_BIN_PATH)DWSIM.SharedClasses.dll</HintPath>
+    </Reference>
+    <Reference Include="DWSIM.SharedClassesCSharp">
+      <HintPath>$(DWSIM_BIN_PATH)DWSIM.SharedClassesCSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="DWSIM.FlowsheetSolver">
+      <HintPath>$(DWSIM_BIN_PATH)DWSIM.FlowsheetSolver.dll</HintPath>
+    </Reference>
+    <Reference Include="DWSIM.ExtensionMethods">
+      <HintPath>$(DWSIM_BIN_PATH)DWSIM.ExtensionMethods.dll</HintPath>
+    </Reference>
+    <Reference Include="DWSIM.Drawing.SkiaSharp">
+      <HintPath>$(DWSIM_BIN_PATH)DWSIM.Drawing.SkiaSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="DWSIM.DrawingTools.Point">
+      <HintPath>$(DWSIM_BIN_PATH)DWSIM.DrawingTools.Point.dll</HintPath>
+    </Reference>
+    <Reference Include="DWSIM.DrawingTools.SkiaSharp.Extended">
+      <HintPath>$(DWSIM_BIN_PATH)DWSIM.DrawingTools.SkiaSharp.Extended.dll</HintPath>
+    </Reference>
+    <Reference Include="DWSIM.XMLSerializer">
+      <HintPath>$(DWSIM_BIN_PATH)DWSIM.XMLSerializer.dll</HintPath>
+    </Reference>
+    <Reference Include="DWSIM.MathOps">
+      <HintPath>$(DWSIM_BIN_PATH)DWSIM.MathOps.dll</HintPath>
+    </Reference>
+    <Reference Include="DWSIM.MathOps.DotNumerics">
+      <HintPath>$(DWSIM_BIN_PATH)DWSIM.MathOps.DotNumerics.dll</HintPath>
+    </Reference>
+    <Reference Include="DWSIM.MathOps.Mapack">
+      <HintPath>$(DWSIM_BIN_PATH)DWSIM.MathOps.Mapack.dll</HintPath>
+    </Reference>
+    <Reference Include="DWSIM.MathOps.RandomOps">
+      <HintPath>$(DWSIM_BIN_PATH)DWSIM.MathOps.RandomOps.dll</HintPath>
+    </Reference>
+    <Reference Include="DWSIM.MathOps.SimpsonIntegrator">
+      <HintPath>$(DWSIM_BIN_PATH)DWSIM.MathOps.SimpsonIntegrator.dll</HintPath>
+    </Reference>
+    <Reference Include="DWSIM.MathOps.SwarmOps">
+      <HintPath>$(DWSIM_BIN_PATH)DWSIM.MathOps.SwarmOps.dll</HintPath>
+    </Reference>
+    <Reference Include="DWSIM.Numerics.Ipopt">
+      <HintPath>$(DWSIM_BIN_PATH)DWSIM.Numerics.Ipopt.dll</HintPath>
+    </Reference>
+    <Reference Include="DWSIM.Numerics.Ipopt.Core">
+      <HintPath>$(DWSIM_BIN_PATH)DWSIM.Numerics.Ipopt.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="DWSIM.Numerics.Ipopt.Sparse">
+      <HintPath>$(DWSIM_BIN_PATH)DWSIM.Numerics.Ipopt.Sparse.dll</HintPath>
+    </Reference>
+    <Reference Include="DWSIM.Thermodynamics.AdvancedEOS.GERG2008">
+      <HintPath>$(DWSIM_BIN_PATH)DWSIM.Thermodynamics.AdvancedEOS.GERG2008.dll</HintPath>
+    </Reference>
+    <Reference Include="DWSIM.Thermodynamics.AdvancedEOS.PCSAFT2">
+      <HintPath>$(DWSIM_BIN_PATH)DWSIM.Thermodynamics.AdvancedEOS.PCSAFT2.dll</HintPath>
+    </Reference>
+    <Reference Include="DWSIM.Thermodynamics.AdvancedEOS.PRSRKTDep">
+      <HintPath>$(DWSIM_BIN_PATH)DWSIM.Thermodynamics.AdvancedEOS.PRSRKTDep.dll</HintPath>
+    </Reference>
+    <Reference Include="DWSIM.Thermodynamics.CoolPropInterface">
+      <HintPath>$(DWSIM_BIN_PATH)DWSIM.Thermodynamics.CoolPropInterface.dll</HintPath>
+    </Reference>
+    <Reference Include="DWSIM.Thermodynamics.ReaktoroPropertyPackage">
+      <HintPath>$(DWSIM_BIN_PATH)DWSIM.Thermodynamics.ReaktoroPropertyPackage.dll</HintPath>
+    </Reference>
+    <Reference Include="DWSIM.FileStorage">
+      <HintPath>$(DWSIM_BIN_PATH)DWSIM.FileStorage.dll</HintPath>
+    </Reference>
+    <Reference Include="DWSIM.DynamicsManager">
+      <HintPath>$(DWSIM_BIN_PATH)DWSIM.DynamicsManager.dll</HintPath>
+    </Reference>
+    <Reference Include="DWSIM.Inspector">
+      <HintPath>$(DWSIM_BIN_PATH)DWSIM.Inspector.dll</HintPath>
+    </Reference>
+    <Reference Include="DWSIM.Logging">
+      <HintPath>$(DWSIM_BIN_PATH)DWSIM.Logging.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <!--
+    The runtime needs more than the referenced assemblies: the compound databases, the localised
+    strings and the CoolProp native library all sit next to them. scripts/build.ps1 and
+    scripts/build.sh copy them into the publish output, so this project file stays a plain
+    project that also builds unchanged inside the DWSIM source tree.
+  -->
+
+</Project>
