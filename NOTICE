@@ -1,0 +1,33 @@
+dwsim-mcp — a Model Context Protocol server for DWSIM
+Copyright (C) 2026 contributors
+
+This product includes software developed as part of DWSIM.
+
+  DWSIM — Open Source Process Simulator
+  Copyright (C) 2008-2026 Daniel Medeiros and contributors
+  https://github.com/DanWBR/dwsim
+  https://dwsim.org
+
+DWSIM is licensed under the GNU General Public License version 3. This program links
+against DWSIM's assemblies (DWSIM.Automation, DWSIM.UnitOperations, DWSIM.Thermodynamics
+and others) and is therefore a derivative work of DWSIM. It is distributed under the same
+licence; see the LICENSE file for the full text.
+
+Upstream home of the server source:
+  https://github.com/DanWBR/dwsim10 — tools/DWSIM.MCPServer
+
+Third-party components shipped in the build output:
+
+  Newtonsoft.Json            MIT licence      https://github.com/JamesNK/Newtonsoft.Json
+  .NET runtime               MIT licence      https://github.com/dotnet/runtime
+  SkiaSharp                  MIT licence      https://github.com/mono/SkiaSharp
+  SharpZipLib                MIT licence      https://github.com/icsharpcode/SharpZipLib
+  CoolProp                   MIT licence      https://github.com/CoolProp/CoolProp
+  IronPython                 Apache-2.0       https://github.com/IronLanguages/ironpython3
+  CAPE-OPEN related code     as distributed with DWSIM
+
+The build output also contains DWSIM's compound databases and localised string resources,
+which are part of DWSIM and covered by the same GPL-3.0 grant.
+
+Your simulation files (.dwxmz), process data and results are your own: they are input and
+output of this program and are not covered by the GPL-3.0 source-distribution obligation.
