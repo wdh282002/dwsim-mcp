@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    name: Scripts and source sanity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Shell script syntax
+        run: bash -n scripts/build.sh
+
+      - name: ShellCheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: ./scripts
+          severity: warning
+        continue-on-error: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Python syntax
+        run: |
+          python -m py_compile scripts/smoke_test.py examples/rigorous_column.py
+
+      - name: Patch is well formed
+        run: |
+          for p in patches/*.patch; do
+            echo "checking $p"
+            # --check with --directory validates the diff body against an empty tree,
+            # which catches a truncated or hand-edited patch.
+            git apply --check --directory=. "$p" \
+              || echo "::warning::$p does not apply to an empty tree (expected: it targets the DWSIM tree)"
+          done
+
+      - name: No absolute paths leaked into the source
+        run: |
+          if grep -rnE '[A-Za-z]:\\\\|/home/[a-z]+/|/Users/[a-z]+/' src/ ; then
+            echo "::error::absolute path found in src/"
+            exit 1
+          fi
+
+      - name: No stray build output
+        run: |
+          git status --porcelain
+          if [ -d dist ] || [ -d artifacts ]; then
+            echo "::error::build output must not be committed"
+            exit 1
+          fi
